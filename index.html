@@ -1,0 +1,577 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MON Racing Game</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: Arial, sans-serif;
+      background: #2c3e50;
+      overflow: hidden;
+      touch-action: manipulation;
+    }
+
+    #gameContainer {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(to bottom, #87CEEB 0%, #98FB98 30%, #90EE90 100%);
+    }
+
+    #raceTrack {
+      position: absolute;
+      left: 10%;
+      bottom: 0;
+      width: 80%;
+      height: 120%; /* Make track even shorter for quick race */
+      background: #444;
+      border-left: 5px solid #fff;
+      border-right: 5px solid #fff;
+    }
+
+    .lane {
+      position: absolute;
+      height: 100%;
+      width: 33.33%;
+      border-right: 2px dashed #fff;
+    }
+
+    .lane:nth-child(1) { left: 0%; }
+    .lane:nth-child(2) { left: 33.33%; }
+    .lane:nth-child(3) { left: 66.66%; border-right: none; }
+
+    .car {
+      position: absolute;
+      width: 30px;
+      height: 60px;
+      border-radius: 15px;
+      transition: bottom 0.1s ease;
+      z-index: 10;
+    }
+
+    #userCar {
+      background: #e74c3c;
+      left: 50%;
+      bottom: 50px;
+      transform: translateX(-50%);
+    }
+
+    #botCar1 {
+      background: #3498db;
+      left: 16.66%;
+      bottom: 50px;
+      transform: translateX(-50%);
+    }
+
+    #botCar2 {
+      background: #f39c12;
+      left: 83.33%;
+      bottom: 50px;
+      transform: translateX(-50%);
+    }
+
+    .profile-img {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      left: 50%;
+      top: -45px;
+      transform: translateX(-50%);
+      border: 2px solid #fff;
+      background: #fff;
+    }
+
+    #finishLine {
+      position: absolute;
+      left: 0;
+      top: 10px;
+      width: 100%;
+      height: 8px;
+      background: repeating-linear-gradient(
+        90deg,
+        #000,
+        #000 10px,
+        #fff 10px,
+        #fff 20px
+      );
+      z-index: 5;
+    }
+
+    #scoreContainer {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: rgba(0,0,0,0.7);
+      padding: 10px 15px;
+      border-radius: 8px;
+      color: white;
+      font-size: 18px;
+      font-weight: bold;
+      z-index: 50;
+    }
+
+    #scoreIcon {
+      width: 30px;
+      height: 30px;
+    }
+
+    #progressContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      width: 200px;
+      z-index: 50;
+    }
+
+    .progress-bar {
+      position: relative;
+      width: 100%;
+      height: 25px;
+      background: rgba(0,0,0,0.5);
+      border-radius: 12px;
+      margin-bottom: 8px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      border-radius: 12px;
+      transition: width 0.3s ease;
+    }
+
+    #userProgress {
+      background: linear-gradient(90deg, #e74c3c, #c0392b);
+    }
+
+    #bot1Progress {
+      background: linear-gradient(90deg, #3498db, #2980b9);
+    }
+
+    #bot2Progress {
+      background: linear-gradient(90deg, #f39c12, #e67e22);
+    }
+
+    .progress-label {
+      position: absolute;
+      left: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: white;
+      font-size: 12px;
+      font-weight: bold;
+      text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+    }
+
+    .controls {
+      position: fixed;
+      bottom: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 15px;
+      z-index: 50;
+    }
+
+    .control-btn {
+      width: 60px;
+      height: 60px;
+      background: rgba(255,255,255,0.9);
+      border: 2px solid #333;
+      border-radius: 12px;
+      font-size: 24px;
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    .control-btn:active {
+      background: rgba(255,255,255,0.7);
+      transform: scale(0.95);
+    }
+
+    #winScreen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.9);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .win-content {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 40px;
+      border-radius: 20px;
+      text-align: center;
+      color: white;
+      animation: winPulse 2s infinite;
+      box-shadow: 0 0 50px rgba(102, 126, 234, 0.5);
+    }
+
+    .win-content img {
+      width: 80px;
+      height: 80px;
+      margin-bottom: 20px;
+      animation: rotate 2s linear infinite;
+    }
+
+    .win-content h1 {
+      font-size: 32px;
+      margin-bottom: 15px;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    }
+
+    .win-content p {
+      font-size: 20px;
+      margin-bottom: 20px;
+    }
+
+    #restartBtn {
+      background: #e74c3c;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    @keyframes winPulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .car {
+        width: 25px;
+        height: 50px;
+      }
+      
+      .profile-img {
+        width: 35px;
+        height: 35px;
+        top: -40px;
+      }
+      
+      .control-btn {
+        width: 50px;
+        height: 50px;
+        font-size: 20px;
+      }
+      
+      #scoreContainer {
+        font-size: 16px;
+        padding: 8px 12px;
+      }
+      
+      #scoreIcon {
+        width: 25px;
+        height: 25px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="gameContainer">
+    <div id="raceTrack">
+      <div class="lane"></div>
+      <div class="lane"></div>
+      <div class="lane"></div>
+      
+      <div id="finishLine"></div>
+      
+      <div class="car" id="userCar">
+        <img class="profile-img" src="https://i.ibb.co/QFks13VJ/image.png" alt="User" onerror="this.style.display='none'">
+      </div>
+      
+      <div class="car" id="botCar1">
+        <img class="profile-img" src="https://i.ibb.co/PGPrW1tV/image.png" alt="Bot1" onerror="this.style.display='none'">
+      </div>
+      
+      <div class="car" id="botCar2">
+        <img class="profile-img" src="https://i.ibb.co/Kx8XHGFh/image.png" alt="Bot2" onerror="this.style.display='none'">
+      </div>
+    </div>
+
+    <div id="scoreContainer">
+      <img id="scoreIcon" src="https://i.ibb.co/HLs3LBtZ/image.png" alt="MON" onerror="this.style.display='none'">
+      <span id="scoreText">Points: 0</span>
+    </div>
+
+    <div id="progressContainer">
+      <div class="progress-bar">
+        <div class="progress-fill" id="userProgress"></div>
+        <span class="progress-label">You</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="bot1Progress"></div>
+        <span class="progress-label">Bil Monday</span>
+      </div>
+      <div class="progress-bar">
+        <div class="progress-fill" id="bot2Progress"></div>
+        <span class="progress-label">Mike web</span>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="control-btn" ontouchstart="startMove('left')" ontouchend="stopMove()" onmousedown="startMove('left')" onmouseup="stopMove()">←</button>
+      <button class="control-btn" ontouchstart="startMove('down')" ontouchend="stopMove()" onmousedown="startMove('down')" onmouseup="stopMove()">↓</button>
+      <button class="control-btn" ontouchstart="startMove('up')" ontouchend="stopMove()" onmousedown="startMove('up')" onmouseup="stopMove()">↑</button>
+      <button class="control-btn" ontouchstart="startMove('right')" ontouchend="stopMove()" onmousedown="startMove('right')" onmouseup="stopMove()">→</button>
+    </div>
+  </div>
+
+  <div id="winScreen">
+    <div class="win-content">
+      <img src="https://i.ibb.co/HLs3LBtZ/image.png" alt="MON Token">
+      <h1>🎉 Congratulations!</h1>
+      <p><strong>You Won MON Token!</strong></p>
+      <p>🏆 Victory is yours! 🏆</p>
+      <button id="restartBtn" onclick="restartGame()">Race Again</button>
+    </div>
+  </div>
+
+  <script>
+    const userCar = document.getElementById('userCar');
+    const botCar1 = document.getElementById('botCar1');
+    const botCar2 = document.getElementById('botCar2');
+    const scoreText = document.getElementById('scoreText');
+    const winScreen = document.getElementById('winScreen');
+    const finishLine = document.getElementById('finishLine');
+
+    let userPosition = 50;
+    let bot1Position = 50;
+    let bot2Position = 50;
+    let score = 0;
+    let gameRunning = true;
+    let moveInterval = null;
+    let currentDirection = null;
+    let raceTime = 0;
+
+    const gameHeight = (window.innerHeight * 1.2) - 100; // Short race for quick gameplay
+    const finishPosition = gameHeight - 80;
+
+    // Initialize positions
+    userCar.style.bottom = userPosition + 'px';
+    botCar1.style.bottom = bot1Position + 'px';
+    botCar2.style.bottom = bot2Position + 'px';
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+      if (!gameRunning) return;
+      e.preventDefault();
+      
+      if (e.key === 'ArrowLeft') startMove('left');
+      if (e.key === 'ArrowRight') startMove('right');
+      if (e.key === 'ArrowUp') startMove('up');
+      if (e.key === 'ArrowDown') startMove('down');
+    });
+
+    document.addEventListener('keyup', (e) => {
+      if (!gameRunning) return;
+      e.preventDefault();
+      stopMove();
+    });
+
+    function startMove(direction) {
+      if (!gameRunning || currentDirection === direction) return;
+      
+      stopMove();
+      currentDirection = direction;
+      
+      moveInterval = setInterval(() => {
+        moveUser(direction);
+      }, 50);
+    }
+
+    function stopMove() {
+      if (moveInterval) {
+        clearInterval(moveInterval);
+        moveInterval = null;
+        currentDirection = null;
+      }
+    }
+
+    function moveUser(direction) {
+      if (!gameRunning) return;
+
+      const moveSpeed = 4; // Movement speed
+      
+      if (direction === 'up') {
+        userPosition = Math.min(userPosition + moveSpeed, gameHeight - 60);
+        userCar.style.bottom = userPosition + 'px';
+        score += 2; // Points for forward movement
+      }
+      
+      if (direction === 'down') {
+        userPosition = Math.max(userPosition - moveSpeed, 0);
+        userCar.style.bottom = userPosition + 'px';
+      }
+      
+      if (direction === 'left') {
+        const currentLeft = parseFloat(userCar.style.left || '50%');
+        const newLeft = Math.max(currentLeft - 2, 16.66);
+        userCar.style.left = newLeft + '%';
+      }
+      
+      if (direction === 'right') {
+        const currentLeft = parseFloat(userCar.style.left || '50%');
+        const newLeft = Math.min(currentLeft + 2, 83.33);
+        userCar.style.left = newLeft + '%';
+      }
+      
+      updateProgress();
+    }
+
+    // Bot AI movement - More competitive and adaptive
+    function moveBots() {
+      if (!gameRunning) return;
+
+      // Bot 1 - Aggressive competitor, adapts to user position
+      let bot1Speed = 3.2;
+      if (userPosition > bot1Position) {
+        bot1Speed = Math.random() > 0.6 ? 4.5 : 3.8; // Catch up burst
+      } else if (userPosition < bot1Position) {
+        bot1Speed = 3.0; // Steady pace when ahead
+      }
+      bot1Position = Math.min(bot1Position + bot1Speed, gameHeight - 60);
+      botCar1.style.bottom = bot1Position + 'px';
+
+      // Bot 2 - Consistent racer with strategic bursts
+      let bot2Speed = 3.5;
+      const raceProgress = (bot2Position / finishPosition) * 100;
+      if (raceProgress > 70) {
+        bot2Speed = Math.random() > 0.4 ? 4.2 : 3.8; // Final sprint
+      } else if (Math.random() > 0.8) {
+        bot2Speed = 4.0; // Random burst
+      }
+      bot2Position = Math.min(bot2Position + bot2Speed, gameHeight - 60);
+      botCar2.style.bottom = bot2Position + 'px';
+
+      updateProgress();
+      checkWinner();
+    }
+
+    function updateProgress() {
+      const userProgressBar = document.getElementById('userProgress');
+      const bot1ProgressBar = document.getElementById('bot1Progress');
+      const bot2ProgressBar = document.getElementById('bot2Progress');
+      
+      const userPercent = (userPosition / finishPosition) * 100;
+      const bot1Percent = (bot1Position / finishPosition) * 100;
+      const bot2Percent = (bot2Position / finishPosition) * 100;
+      
+      userProgressBar.style.width = Math.min(userPercent, 100) + '%';
+      bot1ProgressBar.style.width = Math.min(bot1Percent, 100) + '%';
+      bot2ProgressBar.style.width = Math.min(bot2Percent, 100) + '%';
+    }
+
+    function checkWinner() {
+      if (!gameRunning) return;
+
+      if (userPosition >= finishPosition) {
+        gameRunning = false;
+        // Bonus points for winning
+        const timeBonus = Math.max(5000 - (raceTime * 10), 1000);
+        score += timeBonus;
+        scoreText.textContent = 'Points: ' + score;
+        showWinScreen();
+      } else if (bot1Position >= finishPosition || bot2Position >= finishPosition) {
+        gameRunning = false;
+        alert('Race Over! A bot won this time. Final Score: ' + score + ' points');
+        restartGame();
+      }
+    }
+
+    function showWinScreen() {
+      winScreen.style.display = 'flex';
+    }
+
+    function restartGame() {
+      gameRunning = true;
+      userPosition = 50;
+      bot1Position = 50;
+      bot2Position = 50;
+      score = 0;
+      raceTime = 0;
+      
+      userCar.style.bottom = userPosition + 'px';
+      botCar1.style.bottom = bot1Position + 'px';
+      botCar2.style.bottom = bot2Position + 'px';
+      
+      userCar.style.left = '50%';
+      botCar1.style.left = '16.66%';
+      botCar2.style.left = '83.33%';
+      
+      scoreText.textContent = 'Points: 0';
+      winScreen.style.display = 'none';
+      
+      // Reset progress bars
+      document.getElementById('userProgress').style.width = '0%';
+      document.getElementById('bot1Progress').style.width = '0%';
+      document.getElementById('bot2Progress').style.width = '0%';
+      
+      stopMove();
+    }
+
+    // Score counter and race timer
+    const scoreInterval = setInterval(() => {
+      if (!gameRunning) return;
+      
+      raceTime += 0.1;
+      score += 5; // Base points over time
+      
+      // Bonus points for staying ahead of bots
+      if (userPosition > bot1Position && userPosition > bot2Position) {
+        score += 15; // Leading bonus
+      } else if (userPosition > bot1Position || userPosition > bot2Position) {
+        score += 8; // Partial lead bonus
+      }
+      
+      scoreText.textContent = 'Points: ' + score;
+    }, 100);
+
+    // Bot movement interval
+    const botInterval = setInterval(moveBots, 100);
+
+    // Prevent context menu on mobile
+    document.addEventListener('contextmenu', e => e.preventDefault());
+    
+    // Prevent zoom on double tap
+    let lastTouchEnd = 0;
+    document.addEventListener('touchend', function (event) {
+      const now = (new Date()).getTime();
+      if (now - lastTouchEnd <= 300) {
+        event.preventDefault();
+      }
+      lastTouchEnd = now;
+    }, false);
+  </script>
+</body>
+</html>
